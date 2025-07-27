@@ -20,7 +20,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Database connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@db.zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
   ssl: {
     rejectUnauthorized: false
   },
