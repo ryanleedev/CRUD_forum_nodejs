@@ -76,24 +76,58 @@ const upload = multer({ storage: storage });
 // Initialize database table
 async function initializeDatabase() {
   try {
-    const createTableQuery = `
-      CREATE TABLE IF NOT EXISTS mboard (
-        idx SERIAL PRIMARY KEY,
-        subject VARCHAR(255) DEFAULT '',
-        name VARCHAR(100) DEFAULT '',
-        password VARCHAR(255),
-        content TEXT,
-        hit INTEGER DEFAULT 0,
-        imglist VARCHAR(255) DEFAULT '',
-        rdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        ip VARCHAR(100)
+    console.log('Initializing database table...');
+    
+    // First, check if table exists
+    const checkTableQuery = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'mboard'
       );
     `;
     
-    await pool.query(createTableQuery);
-    console.log('Database table initialized successfully');
+    const tableExists = await pool.query(checkTableQuery);
+    console.log('Table exists check result:', tableExists.rows[0]);
+    
+    if (!tableExists.rows[0].exists) {
+      console.log('Creating mboard table...');
+      const createTableQuery = `
+        CREATE TABLE mboard (
+          idx SERIAL PRIMARY KEY,
+          subject VARCHAR(255) DEFAULT '',
+          name VARCHAR(100) DEFAULT '',
+          password VARCHAR(255),
+          content TEXT,
+          hit INTEGER DEFAULT 0,
+          imglist VARCHAR(255) DEFAULT '',
+          rdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          ip VARCHAR(100)
+        );
+      `;
+      
+      await pool.query(createTableQuery);
+      console.log('Database table created successfully');
+      
+      // Insert sample data
+      const sampleDataQuery = `
+        INSERT INTO mboard (subject, name, password, content, hit, rdate) VALUES
+        ('Welcome to Tech Forum!', 'Admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'This is a sample post. Password is "password".', 0, CURRENT_TIMESTAMP),
+        ('Getting Started with Node.js', 'Developer', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Node.js is a powerful JavaScript runtime. This post explains the basics.', 0, CURRENT_TIMESTAMP)
+      `;
+      
+      await pool.query(sampleDataQuery);
+      console.log('Sample data inserted successfully');
+    } else {
+      console.log('Table already exists, skipping creation');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    });
   }
 }
 
