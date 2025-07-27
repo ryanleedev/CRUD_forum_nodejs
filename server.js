@@ -20,13 +20,13 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Database connection
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:rleeforum2025@db.zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
   ssl: {
     rejectUnauthorized: false
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000,
 });
 
 // Test database connection
@@ -36,7 +36,16 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('Connection string used:', process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres');
+});
+
+// Test initial connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Initial database connection test failed:', err);
+  } else {
+    console.log('Initial database connection test successful:', res.rows[0]);
+  }
 });
 
 // File upload configuration
