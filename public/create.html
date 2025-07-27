@@ -43,8 +43,9 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="image" class="form-label">Image (optional)</label>
-                    <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    <label for="image" class="form-label">Image (disabled for Vercel deployment)</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*" disabled>
+                    <small class="form-text text-muted">Image upload is currently disabled for Vercel deployment.</small>
                 </div>
                 
                 <div class="mb-3">

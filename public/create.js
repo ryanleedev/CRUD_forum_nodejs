@@ -22,22 +22,31 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const formData = new FormData(createForm);
+            const postData = {
+                subject: formData.get('subject'),
+                name: formData.get('name'),
+                password: formData.get('password'),
+                content: formData.get('content')
+            };
             
             try {
                 const response = await fetch('/api/posts', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(postData)
                 });
                 
                 const data = await response.json();
                 
-                            if (response.ok) {
-                alert('Post created successfully!');
-                window.location.href = '/';
-            } else {
-                console.error('Server error:', data);
-                alert('Error creating post: ' + (data.details || data.error));
-            }
+                if (response.ok) {
+                    alert('Post created successfully!');
+                    window.location.href = '/';
+                } else {
+                    console.error('Server error:', data);
+                    alert('Error creating post: ' + (data.details || data.error));
+                }
             } catch (error) {
                 console.error('Error creating post:', error);
                 alert('Error creating post. Please try again.');

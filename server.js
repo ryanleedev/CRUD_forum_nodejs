@@ -205,14 +205,13 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/posts', upload.single('image'), async (req, res) => {
+app.post('/api/posts', async (req, res) => {
   try {
     console.log('Creating post with data:', req.body);
-    console.log('File:', req.file);
     
     const { subject, name, password, content } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
-    const imglist = req.file ? req.file.filename : '';
+    const imglist = ''; // Disable image upload for Vercel deployment
     
     console.log('Processed data:', { subject, name, content, imglist, ip });
     
