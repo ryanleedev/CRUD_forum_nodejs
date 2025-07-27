@@ -171,12 +171,32 @@ app.get('/api/posts/:id', async (req, res) => {
     }
     
     const post = result[0];
+    console.log('Found post:', post);
     
-    // Update hit count
-    await supabaseRequest(`mboard?idx=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ hit: post.hit + 1 })
-    });
+    // Update hit count using direct fetch
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/mboard?idx=eq.${id}`;
+      const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      };
+
+      const response = await fetch(url, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ hit: (post.hit || 0) + 1 })
+      });
+      
+      if (response.ok) {
+        console.log('Hit count updated successfully');
+      } else {
+        console.log('Failed to update hit count, but continuing...');
+      }
+    } catch (hitError) {
+      console.log('Error updating hit count:', hitError.message);
+      // Continue even if hit count update fails
+    }
     
     res.json(post);
   } catch (error) {
