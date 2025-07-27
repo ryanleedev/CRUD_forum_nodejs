@@ -20,7 +20,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Database connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@db.zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
   ssl: {
     rejectUnauthorized: false
   },
@@ -43,6 +43,14 @@ pool.on('error', (err) => {
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Initial database connection test failed:', err);
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    console.error('Connection details:', {
+      host: 'db.zmgovmbmgaxscjevxzhk.supabase.co',
+      port: 5432,
+      database: 'postgres',
+      user: 'postgres'
+    });
   } else {
     console.log('Initial database connection test successful:', res.rows[0]);
   }
