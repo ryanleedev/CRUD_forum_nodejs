@@ -1,0 +1,21 @@
+/* 
+Name: Jeonghyeon Lee
+Date: Apr 3rd
+File: main.css
+Lab Objective: This is css file 
+*/
+
+
+.createBtn, .listBtn {
+    min-width: 80px;
+    max-width: 80px;
+}
+
+.invalid_fb {
+    color: rgb(219, 0, 0);
+    font-size: 15px;
+}
+
+#img_cont img {
+    max-width: 100%;
+}
