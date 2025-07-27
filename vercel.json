@@ -12,6 +12,18 @@
       "dest": "/server.js"
     },
     {
+      "src": "/create",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/read/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/update/(.*)",
+      "dest": "/server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/server.js"
     }

@@ -9,14 +9,20 @@ let currentPage = 1;
 
 // Load posts on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing...');
     loadPosts();
     
     // Write button event
-    if(document.querySelector("#btn_write")){
-        const btn_write = document.querySelector("#btn_write") 
-        btn_write.addEventListener("click", () => {
+    const btn_write = document.querySelector("#btn_write");
+    if(btn_write){
+        console.log('Write button found, adding event listener');
+        btn_write.addEventListener("click", (e) => {
+            e.preventDefault();
+            console.log('Write button clicked, navigating to /create');
             window.location.href = '/create';
-        })
+        });
+    } else {
+        console.error('Write button not found!');
     }
 });
 
