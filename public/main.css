@@ -1,0 +1,52 @@
+/* 
+Name: Jeonghyeon Lee
+Date: Apr 3rd
+File: main.css
+Lab Objective: This is css file 
+*/
+
+.createBtn, .listBtn {
+    min-width: 80px;
+    max-width: 80px;
+}
+
+.invalid_fb {
+    color: rgb(219, 0, 0);
+    font-size: 15px;
+}
+
+#img_cont img {
+    max-width: 100%;
+}
+
+.view_detail {
+    cursor: pointer;
+}
+
+.view_detail:hover {
+    background-color: #f8f9fa;
+}
+
+.pagination {
+    display: flex;
+    gap: 5px;
+}
+
+.pagination a {
+    padding: 8px 12px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    color: #007bff;
+    border-radius: 4px;
+}
+
+.pagination a:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.pagination .active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+} 

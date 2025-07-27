@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Read Post - Tech Forum</title>
+
+        <!-- bootstrap -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/css/bootstrap.min.css" rel="stylesheet"
+            integrity="sha384-aFq/bzH65dt+w6FI2ooMVUpc+21e0SRygnTpmBvdBgSdnuTN7QbdgL+OapgHtvPp" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha2/dist/js/bootstrap.bundle.min.js" integrity="sha384-qKXV1j0HvMUeCBQ+QVp7JcfGl760yU08IQ+GpUo5hlbpg51QRiuqHAJz8+BrxE/N"
+            crossorigin="anonymous"></script>
+        
+        <!-- custom css -->
+        <link rel="stylesheet" href="/main.css">
+    </head>
+    <body>
+        <div class="container mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h1">Post Details</h1>
+                <button class="btn btn-secondary" id="btn_index">Back to List</button>
+            </div>
+        </div>
+        
+        <div class="container mt-3">
+            <div id="postContent">
+                <!-- Post content will be loaded here -->
+            </div>
+            
+            <div class="mt-3">
+                <button class="btn btn-warning" id="btn_edit" data-bs-toggle="modal" data-bs-target="#editModal">Edit</button>
+                <button class="btn btn-danger" id="btn_delete" data-bs-toggle="modal" data-bs-target="#deleteModal">Delete</button>
+            </div>
+        </div>
+
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modal_title">Edit Post</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editForm">
+                            <input type="hidden" id="edit_post_id">
+                            <div class="mb-3">
+                                <label for="edit_subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="edit_subject" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_content" class="form-label">Content</label>
+                                <textarea class="form-control" id="edit_content" rows="10" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="edit_password" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="btn_edit_submit">Update</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Post</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this post?</p>
+                        <form id="deleteForm">
+                            <div class="mb-3">
+                                <label for="delete_password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="delete_password" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="btn_delete_submit">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/read.js"></script>
+    </body>
+</html> 
