@@ -148,21 +148,89 @@ app.get('/update/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'update.html'));
 });
 
+// Database table check
+app.get('/api/check-table', async (req, res) => {
+  try {
+    console.log('Checking if mboard table exists...');
+    
+    const checkTableQuery = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'mboard'
+      );
+    `;
+    
+    const tableExists = await pool.query(checkTableQuery);
+    console.log('Table exists check result:', tableExists.rows[0]);
+    
+    if (tableExists.rows[0].exists) {
+      // Check table structure
+      const tableInfoQuery = `
+        SELECT column_name, data_type, is_nullable 
+        FROM information_schema.columns 
+        WHERE table_name = 'mboard' 
+        ORDER BY ordinal_position;
+      `;
+      
+      const tableInfo = await pool.query(tableInfoQuery);
+      console.log('Table structure:', tableInfo.rows);
+      
+      // Check row count
+      const rowCountQuery = 'SELECT COUNT(*) as count FROM mboard';
+      const rowCount = await pool.query(rowCountQuery);
+      console.log('Row count:', rowCount.rows[0]);
+      
+      res.json({
+        tableExists: true,
+        structure: tableInfo.rows,
+        rowCount: parseInt(rowCount.rows[0].count)
+      });
+    } else {
+      res.json({
+        tableExists: false,
+        message: 'Table mboard does not exist'
+      });
+    }
+  } catch (error) {
+    console.error('Error checking table:', error);
+    res.status(500).json({ 
+      error: error.message,
+      code: error.code,
+      details: error.detail
+    });
+  }
+});
+
 // Database health check
 app.get('/api/health', async (req, res) => {
   try {
+    console.log('Health check requested');
+    console.log('Database connection string:', process.env.DATABASE_URL || 'Using fallback connection string');
+    
     const result = await pool.query('SELECT NOW() as current_time');
+    console.log('Health check successful:', result.rows[0]);
+    
     res.json({ 
       status: 'healthy', 
       database: 'connected',
-      timestamp: result.rows[0].current_time 
+      timestamp: result.rows[0].current_time,
+      connectionString: process.env.DATABASE_URL ? 'Using environment variable' : 'Using fallback'
     });
   } catch (error) {
     console.error('Database health check failed:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint
+    });
     res.status(500).json({ 
       status: 'unhealthy', 
       database: 'disconnected',
-      error: error.message 
+      error: error.message,
+      code: error.code,
+      details: error.detail
     });
   }
 });
