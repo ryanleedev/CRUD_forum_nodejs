@@ -31,12 +31,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const data = await response.json();
                 
-                if (response.ok) {
-                    alert('Post created successfully!');
-                    window.location.href = '/';
-                } else {
-                    alert('Error creating post: ' + data.error);
-                }
+                            if (response.ok) {
+                alert('Post created successfully!');
+                window.location.href = '/';
+            } else {
+                console.error('Server error:', data);
+                alert('Error creating post: ' + (data.details || data.error));
+            }
             } catch (error) {
                 console.error('Error creating post:', error);
                 alert('Error creating post. Please try again.');

@@ -23,7 +23,20 @@ const pool = new Pool({
   connectionString: 'postgresql://postgres:rleeforum2025@db.zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test database connection
+pool.on('connect', () => {
+  console.log('Connected to Supabase PostgreSQL database');
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
 });
 
 // File upload configuration
@@ -84,6 +97,25 @@ app.get('/update/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'update.html'));
 });
 
+// Database health check
+app.get('/api/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW() as current_time');
+    res.json({ 
+      status: 'healthy', 
+      database: 'connected',
+      timestamp: result.rows[0].current_time 
+    });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(500).json({ 
+      status: 'unhealthy', 
+      database: 'disconnected',
+      error: error.message 
+    });
+  }
+});
+
 // API Routes
 app.get('/api/posts', async (req, res) => {
   try {
@@ -139,12 +171,18 @@ app.get('/api/posts/:id', async (req, res) => {
 
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
+    console.log('Creating post with data:', req.body);
+    console.log('File:', req.file);
+    
     const { subject, name, password, content } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
     const imglist = req.file ? req.file.filename : '';
     
+    console.log('Processed data:', { subject, name, content, imglist, ip });
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
     
     const query = `
       INSERT INTO mboard (subject, name, password, content, hit, imglist, ip)
@@ -152,9 +190,13 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
       RETURNING *
     `;
     
+    console.log('Executing query with params:', [subject, name, '***', content, 0, imglist, ip]);
+    
     const result = await pool.query(query, [
       subject, name, hashedPassword, content, 0, imglist, ip
     ]);
+    
+    console.log('Query executed successfully, result:', result.rows[0]);
     
     res.status(201).json({
       message: 'Post created successfully',
@@ -162,7 +204,16 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating post:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint
+    });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
