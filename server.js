@@ -364,14 +364,31 @@ app.delete('/api/posts/:id', async (req, res) => {
       return res.status(401).json({ error: 'Invalid password' });
     }
     
-    await supabaseRequest(`mboard?idx=eq.${id}`, {
-      method: 'DELETE'
+    // Use direct fetch for DELETE
+    const url = `${SUPABASE_URL}/rest/v1/mboard?idx=eq.${id}`;
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    };
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers
     });
     
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    console.log('Post deleted successfully');
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
     console.error('Error deleting post:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
