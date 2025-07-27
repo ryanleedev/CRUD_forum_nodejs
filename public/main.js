@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function loadPosts(page = 1) {
     try {
         console.log('Loading posts for page:', page);
-        const response = await fetch(`/api/posts?page=${page}&limit=5`);
+        const response = await fetch(`/api/posts?page=${page}&limit=10`);
         console.log('API response status:', response.status);
         
         const data = await response.json();
