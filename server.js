@@ -170,9 +170,12 @@ app.get('/api/health', async (req, res) => {
 // API Routes
 app.get('/api/posts', async (req, res) => {
   try {
+    console.log('Fetching posts with query:', req.query);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
     const offset = (page - 1) * limit;
+
+    console.log('Query parameters:', { page, limit, offset });
 
     const postsQuery = `
       SELECT * FROM mboard 
@@ -182,20 +185,34 @@ app.get('/api/posts', async (req, res) => {
     
     const countQuery = 'SELECT COUNT(*) as total FROM mboard';
     
-    const [postsResult, countResult] = await Promise.all([
-      pool.query(postsQuery, [limit, offset]),
-      pool.query(countQuery)
-    ]);
+    console.log('Executing posts query with params:', [limit, offset]);
+    const postsResult = await pool.query(postsQuery, [limit, offset]);
+    console.log('Posts query result:', postsResult.rows);
+    
+    console.log('Executing count query');
+    const countResult = await pool.query(countQuery);
+    console.log('Count query result:', countResult.rows[0]);
 
-    res.json({
+    const response = {
       posts: postsResult.rows,
       total: parseInt(countResult.rows[0].total),
       currentPage: page,
       totalPages: Math.ceil(countResult.rows[0].total / limit)
-    });
+    };
+    
+    console.log('Sending response:', response);
+    res.json(response);
   } catch (error) {
     console.error('Error fetching posts:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 

@@ -29,8 +29,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Load posts from API
 async function loadPosts(page = 1) {
     try {
+        console.log('Loading posts for page:', page);
         const response = await fetch(`/api/posts?page=${page}&limit=5`);
+        console.log('API response status:', response.status);
+        
         const data = await response.json();
+        console.log('API response data:', data);
         
         if (response.ok) {
             displayPosts(data.posts);
@@ -38,9 +42,13 @@ async function loadPosts(page = 1) {
             currentPage = page;
         } else {
             console.error('Error loading posts:', data.error);
+            document.getElementById('postsTableBody').innerHTML = 
+                '<tr><td colspan="5" class="text-center text-danger">Error loading posts: ' + data.error + '</td></tr>';
         }
     } catch (error) {
         console.error('Error loading posts:', error);
+        document.getElementById('postsTableBody').innerHTML = 
+            '<tr><td colspan="5" class="text-center text-danger">Error loading posts: ' + error.message + '</td></tr>';
     }
 }
 
