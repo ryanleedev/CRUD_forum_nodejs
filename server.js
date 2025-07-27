@@ -1,5 +1,5 @@
 const express = require('express');
-const { Pool } = require('pg');
+const fetch = require('node-fetch');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
@@ -18,43 +18,36 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@db.zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres',
-  ssl: {
-    rejectUnauthorized: false
-  },
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
+// Supabase configuration
+const SUPABASE_URL = 'https://zmgovmbmgaxscjevxzhk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InptZ292bWJtZ2F4c2NqZXZ4emhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1Nzg3NDQsImV4cCI6MjA2OTE1NDc0NH0.UiZNo18w_CFk0lqf7Ek7gEYZ76z2rKPGBIIpXPpw6ks';
 
-// Test database connection
-pool.on('connect', () => {
-  console.log('Connected to Supabase PostgreSQL database');
-});
+// Supabase API helper functions
+async function supabaseRequest(endpoint, options = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const headers = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  console.error('Connection string used:', process.env.DATABASE_URL || 'postgresql://postgres:rleeforum2025@zmgovmbmgaxscjevxzhk.supabase.co:5432/postgres');
-});
-
-// Test initial connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Initial database connection test failed:', err);
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
-    console.error('Connection details:', {
-      host: 'db.zmgovmbmgaxscjevxzhk.supabase.co',
-      port: 5432,
-      database: 'postgres',
-      user: 'postgres'
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers
     });
-  } else {
-    console.log('Initial database connection test successful:', res.rows[0]);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Supabase API error:', error);
+    throw error;
   }
-});
+}
 
 // File upload configuration
 const storage = multer.diskStorage({
@@ -73,64 +66,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Initialize database table
-async function initializeDatabase() {
-  try {
-    console.log('Initializing database table...');
-    
-    // First, check if table exists
-    const checkTableQuery = `
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'mboard'
-      );
-    `;
-    
-    const tableExists = await pool.query(checkTableQuery);
-    console.log('Table exists check result:', tableExists.rows[0]);
-    
-    if (!tableExists.rows[0].exists) {
-      console.log('Creating mboard table...');
-      const createTableQuery = `
-        CREATE TABLE mboard (
-          idx SERIAL PRIMARY KEY,
-          subject VARCHAR(255) DEFAULT '',
-          name VARCHAR(100) DEFAULT '',
-          password VARCHAR(255),
-          content TEXT,
-          hit INTEGER DEFAULT 0,
-          imglist VARCHAR(255) DEFAULT '',
-          rdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          ip VARCHAR(100)
-        );
-      `;
-      
-      await pool.query(createTableQuery);
-      console.log('Database table created successfully');
-      
-      // Insert sample data
-      const sampleDataQuery = `
-        INSERT INTO mboard (subject, name, password, content, hit, rdate) VALUES
-        ('Welcome to Tech Forum!', 'Admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'This is a sample post. Password is "password".', 0, CURRENT_TIMESTAMP),
-        ('Getting Started with Node.js', 'Developer', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Node.js is a powerful JavaScript runtime. This post explains the basics.', 0, CURRENT_TIMESTAMP)
-      `;
-      
-      await pool.query(sampleDataQuery);
-      console.log('Sample data inserted successfully');
-    } else {
-      console.log('Table already exists, skipping creation');
-    }
-  } catch (error) {
-    console.error('Error initializing database:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail
-    });
-  }
-}
-
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -148,89 +83,42 @@ app.get('/update/:id', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'update.html'));
 });
 
-// Database table check
-app.get('/api/check-table', async (req, res) => {
-  try {
-    console.log('Checking if mboard table exists...');
-    
-    const checkTableQuery = `
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'mboard'
-      );
-    `;
-    
-    const tableExists = await pool.query(checkTableQuery);
-    console.log('Table exists check result:', tableExists.rows[0]);
-    
-    if (tableExists.rows[0].exists) {
-      // Check table structure
-      const tableInfoQuery = `
-        SELECT column_name, data_type, is_nullable 
-        FROM information_schema.columns 
-        WHERE table_name = 'mboard' 
-        ORDER BY ordinal_position;
-      `;
-      
-      const tableInfo = await pool.query(tableInfoQuery);
-      console.log('Table structure:', tableInfo.rows);
-      
-      // Check row count
-      const rowCountQuery = 'SELECT COUNT(*) as count FROM mboard';
-      const rowCount = await pool.query(rowCountQuery);
-      console.log('Row count:', rowCount.rows[0]);
-      
-      res.json({
-        tableExists: true,
-        structure: tableInfo.rows,
-        rowCount: parseInt(rowCount.rows[0].count)
-      });
-    } else {
-      res.json({
-        tableExists: false,
-        message: 'Table mboard does not exist'
-      });
-    }
-  } catch (error) {
-    console.error('Error checking table:', error);
-    res.status(500).json({ 
-      error: error.message,
-      code: error.code,
-      details: error.detail
-    });
-  }
-});
-
 // Database health check
 app.get('/api/health', async (req, res) => {
   try {
     console.log('Health check requested');
-    console.log('Database connection string:', process.env.DATABASE_URL || 'Using fallback connection string');
-    
-    const result = await pool.query('SELECT NOW() as current_time');
-    console.log('Health check successful:', result.rows[0]);
-    
+    const result = await supabaseRequest('mboard?select=count');
     res.json({ 
       status: 'healthy', 
       database: 'connected',
-      timestamp: result.rows[0].current_time,
-      connectionString: process.env.DATABASE_URL ? 'Using environment variable' : 'Using fallback'
+      timestamp: new Date().toISOString(),
+      connectionString: 'Using Supabase REST API'
     });
   } catch (error) {
     console.error('Database health check failed:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint
-    });
     res.status(500).json({ 
       status: 'unhealthy', 
       database: 'disconnected',
-      error: error.message,
-      code: error.code,
-      details: error.detail
+      error: error.message
+    });
+  }
+});
+
+// Database table check
+app.get('/api/check-table', async (req, res) => {
+  try {
+    console.log('Checking mboard table...');
+    const result = await supabaseRequest('mboard?select=*&limit=1');
+    
+    res.json({
+      tableExists: true,
+      rowCount: result.length,
+      sampleData: result[0] || null
+    });
+  } catch (error) {
+    console.error('Error checking table:', error);
+    res.status(500).json({ 
+      error: error.message
     });
   }
 });
@@ -245,38 +133,25 @@ app.get('/api/posts', async (req, res) => {
 
     console.log('Query parameters:', { page, limit, offset });
 
-    const postsQuery = `
-      SELECT * FROM mboard 
-      ORDER BY idx DESC 
-      LIMIT $1 OFFSET $2
-    `;
+    // Get all posts first (Supabase doesn't support OFFSET in REST API easily)
+    const allPosts = await supabaseRequest('mboard?select=*&order=idx.desc');
     
-    const countQuery = 'SELECT COUNT(*) as total FROM mboard';
+    // Manual pagination
+    const startIndex = offset;
+    const endIndex = startIndex + limit;
+    const posts = allPosts.slice(startIndex, endIndex);
     
-    console.log('Executing posts query with params:', [limit, offset]);
-    const postsResult = await pool.query(postsQuery, [limit, offset]);
-    console.log('Posts query result:', postsResult.rows);
-    
-    console.log('Executing count query');
-    const countResult = await pool.query(countQuery);
-    console.log('Count query result:', countResult.rows[0]);
-
     const response = {
-      posts: postsResult.rows,
-      total: parseInt(countResult.rows[0].total),
+      posts: posts,
+      total: allPosts.length,
       currentPage: page,
-      totalPages: Math.ceil(countResult.rows[0].total / limit)
+      totalPages: Math.ceil(allPosts.length / limit)
     };
     
     console.log('Sending response:', response);
     res.json(response);
   } catch (error) {
     console.error('Error fetching posts:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail
-    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -287,18 +162,23 @@ app.get('/api/posts', async (req, res) => {
 app.get('/api/posts/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('Fetching post with id:', id);
     
-    // Update hit count
-    await pool.query('UPDATE mboard SET hit = hit + 1 WHERE idx = $1', [id]);
+    const result = await supabaseRequest(`mboard?select=*&idx=eq.${id}`);
     
-    // Get post details
-    const result = await pool.query('SELECT * FROM mboard WHERE idx = $1', [id]);
-    
-    if (result.rows.length === 0) {
+    if (result.length === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    res.json(result.rows[0]);
+    const post = result[0];
+    
+    // Update hit count
+    await supabaseRequest(`mboard?idx=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ hit: post.hit + 1 })
+    });
+    
+    res.json(post);
   } catch (error) {
     console.error('Error fetching post:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -320,32 +200,32 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     console.log('Password hashed successfully');
     
-    const query = `
-      INSERT INTO mboard (subject, name, password, content, hit, imglist, ip)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `;
+    const postData = {
+      subject,
+      name,
+      password: hashedPassword,
+      content,
+      hit: 0,
+      imglist,
+      ip,
+      rdate: new Date().toISOString()
+    };
     
-    console.log('Executing query with params:', [subject, name, '***', content, 0, imglist, ip]);
+    console.log('Sending post data:', { ...postData, password: '***' });
     
-    const result = await pool.query(query, [
-      subject, name, hashedPassword, content, 0, imglist, ip
-    ]);
+    const result = await supabaseRequest('mboard', {
+      method: 'POST',
+      body: JSON.stringify(postData)
+    });
     
-    console.log('Query executed successfully, result:', result.rows[0]);
+    console.log('Post created successfully:', result);
     
     res.status(201).json({
       message: 'Post created successfully',
-      post: result.rows[0]
+      post: result[0]
     });
   } catch (error) {
     console.error('Error creating post:', error);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint
-    });
     res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 
@@ -358,31 +238,35 @@ app.put('/api/posts/:id', async (req, res) => {
     const { id } = req.params;
     const { subject, content, password } = req.body;
     
-    // Verify password
-    const postResult = await pool.query('SELECT password FROM mboard WHERE idx = $1', [id]);
+    console.log('Updating post:', { id, subject, content });
     
-    if (postResult.rows.length === 0) {
+    // Get current post to verify password
+    const currentPost = await supabaseRequest(`mboard?select=password&idx=eq.${id}`);
+    
+    if (currentPost.length === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    const isValidPassword = await bcrypt.compare(password, postResult.rows[0].password);
+    const isValidPassword = await bcrypt.compare(password, currentPost[0].password);
     
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
     
-    const query = `
-      UPDATE mboard 
-      SET subject = $1, content = $2, rdate = CURRENT_TIMESTAMP
-      WHERE idx = $3
-      RETURNING *
-    `;
+    const updateData = {
+      subject,
+      content,
+      rdate: new Date().toISOString()
+    };
     
-    const result = await pool.query(query, [subject, content, id]);
+    const result = await supabaseRequest(`mboard?idx=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData)
+    });
     
     res.json({
       message: 'Post updated successfully',
-      post: result.rows[0]
+      post: result[0]
     });
   } catch (error) {
     console.error('Error updating post:', error);
@@ -395,20 +279,24 @@ app.delete('/api/posts/:id', async (req, res) => {
     const { id } = req.params;
     const { password } = req.body;
     
-    // Verify password
-    const postResult = await pool.query('SELECT password FROM mboard WHERE idx = $1', [id]);
+    console.log('Deleting post:', { id });
     
-    if (postResult.rows.length === 0) {
+    // Get current post to verify password
+    const currentPost = await supabaseRequest(`mboard?select=password&idx=eq.${id}`);
+    
+    if (currentPost.length === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
     
-    const isValidPassword = await bcrypt.compare(password, postResult.rows[0].password);
+    const isValidPassword = await bcrypt.compare(password, currentPost[0].password);
     
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
     }
     
-    await pool.query('DELETE FROM mboard WHERE idx = $1', [id]);
+    await supabaseRequest(`mboard?idx=eq.${id}`, {
+      method: 'DELETE'
+    });
     
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
@@ -418,9 +306,9 @@ app.delete('/api/posts/:id', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  await initializeDatabase();
+  console.log('Using Supabase REST API for database operations');
 });
 
 module.exports = app; 
