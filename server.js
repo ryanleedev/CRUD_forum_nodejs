@@ -213,16 +213,41 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
     
     console.log('Sending post data:', { ...postData, password: '***' });
     
-    const result = await supabaseRequest('mboard', {
+    // Use direct fetch for POST to handle empty response
+    const url = `${SUPABASE_URL}/rest/v1/mboard`;
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
+
+    const response = await fetch(url, {
       method: 'POST',
+      headers,
       body: JSON.stringify(postData)
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Try to get the created post data
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.log('Empty response body, fetching created post...');
+      // If response is empty, fetch the created post
+      const createdPost = await supabaseRequest(`mboard?select=*&order=idx.desc&limit=1`);
+      result = createdPost;
+    }
     
     console.log('Post created successfully:', result);
     
     res.status(201).json({
       message: 'Post created successfully',
-      post: result[0]
+      post: Array.isArray(result) ? result[0] : result
     });
   } catch (error) {
     console.error('Error creating post:', error);
@@ -259,14 +284,39 @@ app.put('/api/posts/:id', async (req, res) => {
       rdate: new Date().toISOString()
     };
     
-    const result = await supabaseRequest(`mboard?idx=eq.${id}`, {
+    // Use direct fetch for PATCH
+    const url = `${SUPABASE_URL}/rest/v1/mboard?idx=eq.${id}`;
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
+
+    const response = await fetch(url, {
       method: 'PATCH',
+      headers,
       body: JSON.stringify(updateData)
     });
     
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // Try to get the updated post data
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.log('Empty response body, fetching updated post...');
+      // If response is empty, fetch the updated post
+      const updatedPost = await supabaseRequest(`mboard?select=*&idx=eq.${id}`);
+      result = updatedPost;
+    }
+    
     res.json({
       message: 'Post updated successfully',
-      post: result[0]
+      post: Array.isArray(result) ? result[0] : result
     });
   } catch (error) {
     console.error('Error updating post:', error);
