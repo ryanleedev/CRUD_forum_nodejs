@@ -72,7 +72,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Post updated successfully!');
                     location.reload();
                 } else {
-                    alert('Error updating post: ' + data.error);
+                    console.error('Server error:', data);
+                    alert('Error updating post: ' + (data.details || data.error));
                 }
             } catch (error) {
                 console.error('Error updating post:', error);

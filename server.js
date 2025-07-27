@@ -283,15 +283,22 @@ app.put('/api/posts/:id', async (req, res) => {
     const { subject, content, password } = req.body;
     
     console.log('Updating post:', { id, subject, content });
+    console.log('Request body:', req.body);
+    
+    if (!subject || !content || !password) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
     
     // Get current post to verify password
     const currentPost = await supabaseRequest(`mboard?select=password&idx=eq.${id}`);
+    console.log('Current post found:', currentPost.length > 0);
     
     if (currentPost.length === 0) {
       return res.status(404).json({ error: 'Post not found' });
     }
     
     const isValidPassword = await bcrypt.compare(password, currentPost[0].password);
+    console.log('Password validation:', isValidPassword);
     
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid password' });
@@ -303,6 +310,8 @@ app.put('/api/posts/:id', async (req, res) => {
       rdate: new Date().toISOString()
     };
     
+    console.log('Update data:', updateData);
+    
     // Use direct fetch for PATCH
     const url = `${SUPABASE_URL}/rest/v1/mboard?idx=eq.${id}`;
     const headers = {
@@ -312,25 +321,33 @@ app.put('/api/posts/:id', async (req, res) => {
       'Prefer': 'return=representation'
     };
 
+    console.log('Sending PATCH request to:', url);
+
     const response = await fetch(url, {
       method: 'PATCH',
       headers,
       body: JSON.stringify(updateData)
     });
     
+    console.log('PATCH response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('PATCH response error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
     }
     
     // Try to get the updated post data
     let result;
     try {
       result = await response.json();
+      console.log('PATCH response result:', result);
     } catch (jsonError) {
       console.log('Empty response body, fetching updated post...');
       // If response is empty, fetch the updated post
       const updatedPost = await supabaseRequest(`mboard?select=*&idx=eq.${id}`);
       result = updatedPost;
+      console.log('Fetched updated post:', result);
     }
     
     res.json({
@@ -339,7 +356,10 @@ app.put('/api/posts/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating post:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 });
 
